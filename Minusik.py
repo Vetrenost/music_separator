@@ -12,8 +12,7 @@ DEMUCS_EXE = r"C:\Users\Ирина\AppData\Local\Programs\Python\Python312\Scrip
 
 def run_demucs(audio_path):
     try:
-        result = subprocess.run([DEMUCS_EXE, "-n", DEMUCS_MODEL, audio_path],
-                                capture_output=True, text=True)
+        result = subprocess.run([DEMUCS_EXE, "-n", DEMUCS_MODEL, audio_path], capture_output=True, text=True)
         return result.stdout + "\n" + result.stderr
     except Exception as e:
         return str(e)
@@ -61,9 +60,7 @@ def start_separation():
 
         try:
             vocals_path, no_vocals_path = mix_no_vocals(model_dir)
-            messagebox.showinfo("Готово", f"Разделение завершено!\n\n"
-                                          f"Вокал: {vocals_path}\n"
-                                          f"Минус: {no_vocals_path}")
+            messagebox.showinfo("Готово", f"Разделение завершено!\n\n Вокал: {vocals_path}\n Минус: {no_vocals_path}")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка при создании no_vocals:\n{str(e)}")
 
