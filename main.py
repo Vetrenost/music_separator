@@ -5,48 +5,65 @@ import os
 import sys
 import threading
 import torchaudio
+from pydub import AudioSegment
 
-# определение папки
+# определение пути до скрипта
 if getattr(sys, 'frozen', False):
     APP_DIR = os.path.dirname(sys.executable)
 else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# путь к demucs
-DEMUCS_EXE = os.path.join(APP_DIR, "demucs.exe")  # demucs держать в одной папке с этим файлом
+# путь к demucs. Держать в одной папке с main.py
+DEMUCS_EXE = os.path.join(APP_DIR, "demucs.exe")
 
-# запуск demucs и вывод ошибок
+# поддерживаемые форматы
+EXPORT_FORMATS = ["wav", "mp3", "flac"]
+
+# запуск demucs
 def run_demucs(audio_path, model_name="htdemucs"):
     try:
-        result = subprocess.run([DEMUCS_EXE, "-n", model_name, audio_path], capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            [DEMUCS_EXE, "-n", model_name, audio_path],
+            capture_output=True, text=True, check=True
+        )
         return result.stdout + "\n" + result.stderr
     except subprocess.CalledProcessError as e:
         return f"Demucs error:\n{e.stdout}\n{e.stderr}"
     except Exception as e:
         return str(e)
 
-# смешивание дорожек для минусовки
-def mix_no_vocals(output_folder, output_name):
+# смешивание дорожек без вокала, 
+def mix_no_vocals(output_folder, output_name, export_format):
     drums = os.path.join(output_folder, "drums.wav")
     bass = os.path.join(output_folder, "bass.wav")
     other = os.path.join(output_folder, "other.wav")
     vocals = os.path.join(output_folder, "vocals.wav")
 
-    no_vocals = os.path.join(APP_DIR, f"{output_name}_no_vocals.wav")
-    vocals_out = os.path.join(APP_DIR, f"{output_name}_vocals.wav")
+    # пути до выходных файлов
+    no_vocals_out = os.path.join(APP_DIR, f"{output_name}_no_vocals.{export_format}")
+    vocals_out = os.path.join(APP_DIR, f"{output_name}_vocals.{export_format}")
 
     d, sr = torchaudio.load(drums)
     b, _ = torchaudio.load(bass)
     o, _ = torchaudio.load(other)
     v, _ = torchaudio.load(vocals)
 
-    combined = d + b + o
-    combined = combined / combined.abs().max() 
+    minus = d + b + o
+    minus = minus / minus.abs().max()
 
-    torchaudio.save(no_vocals, combined, sample_rate=sr)
-    torchaudio.save(vocals_out, v, sample_rate=sr)
+    temp_minus = os.path.join(APP_DIR, "_temp_minus.wav")
+    temp_vocals = os.path.join(APP_DIR, "_temp_vocals.wav")
 
-    return vocals_out, no_vocals
+    torchaudio.save(temp_minus, minus, sample_rate=sr)
+    torchaudio.save(temp_vocals, v, sample_rate=sr)
+
+    AudioSegment.from_wav(temp_minus).export(no_vocals_out, format=export_format)
+    AudioSegment.from_wav(temp_vocals).export(vocals_out, format=export_format)
+
+    os.remove(temp_minus)
+    os.remove(temp_vocals)
+
+    return vocals_out, no_vocals_out
 
 # обработка файла
 def start_separation():
@@ -57,6 +74,11 @@ def start_separation():
     if not file_path:
         return
 
+    export_format = format_var.get()
+    if export_format not in EXPORT_FORMATS:
+        messagebox.showerror("Ошибка", "Выбран неподдерживаемый формат")
+        return
+
     status_label.config(text="Обработка...")
     window.update()
 
@@ -64,9 +86,8 @@ def start_separation():
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         try:
             output = run_demucs(file_path)
-            model_dir = os.path.join(APP_DIR, "separated", "htdemucs", file_name) # модель не менять, всё сломается
-
-            vocals_path, no_vocals_path = mix_no_vocals(model_dir, file_name)
+            model_dir = os.path.join(APP_DIR, "separated", "htdemucs", file_name)
+            vocals_path, no_vocals_path = mix_no_vocals(model_dir, file_name, export_format)
             messagebox.showinfo("Готово", f"Вокал: {vocals_path}\nМинус: {no_vocals_path}")
         except Exception as e:
             messagebox.showerror("Ошибка", str(e))
@@ -77,14 +98,20 @@ def start_separation():
 
 # кривой интерфейс
 window = tk.Tk()
-window.title("Минусатор")
-window.geometry("400x200")
+window.title("Demucs — Минусатор")
+window.geometry("420x220")
 window.resizable(False, False)
 
-tk.Label(window, text="Выберите аудиофайл", font=("Arial", 12)).pack(pady=20)
-tk.Button(window, text="Обработать", command=start_separation, font=("Arial", 10)).pack()
+# выбор файла
+tk.Label(window, text="Выберите аудиофайл", font=("Arial", 12)).pack(pady=10)
+tk.Button(window, text="Обработать", command=start_separation, font=("Arial", 11)).pack(pady=10)
+
+# выбор формата файла на выходе
+tk.Label(window, text="Формат выхода:", font=("Arial", 10)).pack()
+format_var = tk.StringVar(value=EXPORT_FORMATS[0])
+tk.OptionMenu(window, format_var, *EXPORT_FORMATS).pack()
 
 status_label = tk.Label(window, text="", fg="blue", font=("Arial", 10))
-status_label.pack(pady=20)
+status_label.pack(pady=10)
 
 window.mainloop()
