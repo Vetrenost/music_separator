@@ -20,7 +20,7 @@ DEMUCS_EXE = os.path.join(APP_DIR, "demucs.exe")
 EXPORT_FORMATS = ["wav", "mp3", "flac"]
 
 # запуск demucs
-def run_demucs(audio_path, model_name="htdemucs"):
+def run_demucs(audio_path, model_name="htdemucs"): #не менять модель, всё сломается 
     try:
         result = subprocess.run(
             [DEMUCS_EXE, "-n", model_name, audio_path],
