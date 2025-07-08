@@ -6,7 +6,8 @@
 Python 3.12+
 torchaudio
 demucs.exe 
-возможно понадобится ffmpeg
+ffmpeg - скачать ffmpeg-release-essentials с сайта https://www.gyan.dev/ffmpeg/builds/ разархивировать в папку с main.py
+
 
 В открывшемся окне:
 Нажми кнопку «Выбрать файл»
