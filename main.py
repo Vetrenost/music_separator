@@ -15,7 +15,7 @@ else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # путь к ffmpeg. Держать в одной папке с main.py
-FFMPEG_PATH = os.path.join(APP_DIR, "ffmpeg", "bin", "ffmpeg.exe") 
+FFMPEG_PATH = os.path.join(APP_DIR, "ffmpeg-7.1.1-essentials_build", "bin", "ffmpeg.exe") 
 AudioSegment.converter = FFMPEG_PATH
 
 # путь к demucs. Тоже держать в одной папке с main.py
