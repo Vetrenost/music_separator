@@ -6,6 +6,7 @@ import sys
 import threading
 import torchaudio
 from pydub import AudioSegment
+from pydub.utils import which
 
 # определение пути до скрипта
 if getattr(sys, 'frozen', False):
@@ -13,14 +14,18 @@ if getattr(sys, 'frozen', False):
 else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# путь к demucs. Держать в одной папке с main.py
+# путь к ffmpeg. Держать в одной папке с main.py
+FFMPEG_PATH = os.path.join(APP_DIR, "ffmpeg", "bin", "ffmpeg.exe") 
+AudioSegment.converter = FFMPEG_PATH
+
+# путь к demucs. Тоже держать в одной папке с main.py
 DEMUCS_EXE = os.path.join(APP_DIR, "demucs.exe")
 
 # поддерживаемые форматы
 EXPORT_FORMATS = ["wav", "mp3", "flac"]
 
 # запуск demucs
-def run_demucs(audio_path, model_name="htdemucs"): #не менять модель, всё сломается 
+def run_demucs(audio_path, model_name="htdemucs"):
     try:
         result = subprocess.run(
             [DEMUCS_EXE, "-n", model_name, audio_path],
